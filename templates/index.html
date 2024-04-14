@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Packet Count</title>
+</head>
+<body>
+
+    <h1>Packet Count</h1>
+    <p>Total number of packets: {{ packet_count }}</p>
+
+    <!-- Birinci grafik görüntüleme -->
+    <div>
+        <h2>Packet Count Over Time (Last 10 Seconds)</h2>
+        <img src="{{ url_for('static', filename=packet_count_graph_filename) }}" alt="Packet Count Graph">
+    </div>
+
+    <!-- İkinci grafik görüntüleme -->
+    <div>
+        <h2>Packet Count by Protocol (Last 30 Seconds)</h2>
+        <img src="{{ url_for('static', filename=protocol_distribution_graph_filename) }}" alt="Protocol Distribution Graph">
+    </div>
+
+    <!-- Üçüncü grafik görüntüleme -->
+    <div>
+        <h2>Ethernet Frame Count Over Time (Last 10 Seconds)</h2>
+        <img src="{{ url_for('static', filename=ethernet_frame_count_graph_filename) }}" alt="Ethernet Frame Count Graph">
+    </div>
+    <!-- Dördüncü grafik görüntüleme -->
+    <div>
+        <h2>Son 10 IP adresi</h2>
+        <img src="{{ url_for('static', filename=mac_address_packet_count_graph_filename) }}" alt="mac_address_packet_count_graph_filename">
+    </div>
+     <!-- Beşinci grafik görüntüleme -->
+    <div>
+        <h2>Concurrent Streams Over Time</h2>
+        <img src="{{ url_for('static', filename=concurrent_streams_graph_filename) }}" alt="Concurrent Streams Graph">
+    </div>
+
+</body>
+</html>

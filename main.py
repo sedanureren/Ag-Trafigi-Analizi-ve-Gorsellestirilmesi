@@ -15,6 +15,7 @@ import time
 import matplotlib
 import uuid
 
+
 matplotlib.use('Agg')
 
 app = Flask(__name__)
@@ -337,6 +338,7 @@ cursor_alarm.execute('''
     CREATE TABLE IF NOT EXISTS alarms (
         id INTEGER PRIMARY KEY,
         message TEXT
+        
     )
 ''')
 
@@ -374,6 +376,7 @@ def perform_statistical_analysis(packet_data):
         print("Error performing statistical analysis:", e)
         return None, []
 
+
 # Alarm mesajlarını ve istatistikleri veritabanına kaydetmek için fonksiyon
 def save_data_to_database(anomalies, alarm_messages):
     try:
@@ -401,6 +404,17 @@ class AnomalyDetectionModel:
             'std_packet_size': 100      # Sabit standart sapma
         }
 
+    def calculate_risk_score(self, packet_size):
+        # Eşik değeri aşan paketler için risk skoru belirleme fonksiyonu
+        threshold = 1500  # Örnek eşik değeri
+        if packet_size > threshold:
+            # Eşik değeri aşan paketler için bir risk skalası kullanarak dinamik olarak bir risk skoru belirle
+            scaled_score = 1 + (packet_size - threshold) / 100  # Örnek bir skalaya göre risk skoru hesaplama
+            return min(10, int(scaled_score))  # Risk skorunu en fazla 10 olarak sınırlandır
+        else:
+            # Eşik değeri aşmayan paketler için sabit bir risk skoru kullan
+            return 1  # Örnek olarak en düşük risk skoru olan 1'i kullan
+
     def statistical_analysis(self, data):
         anomalies = pd.DataFrame(columns=data.columns)
         alarm_messages = []
@@ -415,6 +429,9 @@ class AnomalyDetectionModel:
             # Z skoru hesapla
             z_score = (packet_size - mean_packet_size) / std_packet_size
 
+            # Risk derecesini hesapla
+            risk_score = self.calculate_risk_score(packet_size)
+
             # Eğer paket boyutu ortalamanın üstündeyse alarm üret
             if packet_size > mean_packet_size:
                 initiator_ip = row['source_ip']
@@ -425,7 +442,7 @@ class AnomalyDetectionModel:
                                   f"transferred {transferred_bytes} bytes at around {timestamp}. " \
                                   f"The mean for this same capture interface + time + IP initiator + " \
                                   f"application ID combination is {mean_packet_size} bytes. " \
-                                  f"That degree of deviation from the mean gets a score of 9."
+                                  f"That degree of deviation from the mean gets a score of {risk_score:.2f}."
 
                 alarm_messages.append(anomaly_message)
                 anomalies = pd.concat([anomalies, row.to_frame().T], ignore_index=True)
@@ -471,18 +488,22 @@ def process_packet_data():
 
         # Belirli bir süre bekle (örneğin, 5 dakika)
         time.sleep(10)  # 5 dakika bekleyin (300 saniye)
-
-# Ana sayfa
-@app.route('/')
-def index():
-     # Alarm mesajlarını veritabanından al
+@app.route('/anomalies')
+def anomalies():
+    # Veritabanından alarm mesajlarını al
     conn_alarm = sqlite3.connect('alarm_data.db', check_same_thread=False)
     cursor_alarm = conn_alarm.cursor()
     cursor_alarm.execute('''
         SELECT message FROM alarms
     ''')
     alarm_messages = [row[0] for row in cursor_alarm.fetchall()]
-    # Birinci grafik dosyasını oluştur ve adını al
+
+    # anomalies.html şablon dosyasını kullanarak alarm mesajlarını göster
+    return render_template('anomalies.html', anomaly_messages=alarm_messages)
+
+@app.route('/')
+def index():
+     # Birinci grafik dosyasını oluştur ve adını al
     packet_count_graph_filename = generate_packet_count_graph()
     # İkinci grafik dosyasını oluştur ve adını al
     protocol_distribution_graph_filename = generate_protocol_distribution_graph()
@@ -498,6 +519,7 @@ def index():
                            ethernet_frame_count_graph_filename=ethernet_frame_count_graph_filename,
                            mac_address_packet_count_graph_filename=mac_address_packet_count_graph_filename
                            )
+
 
 
 # Ana uygulama çalıştırma noktası

@@ -337,7 +337,10 @@ cursor_alarm = conn_alarm.cursor()
 cursor_alarm.execute('''
     CREATE TABLE IF NOT EXISTS alarms (
         id INTEGER PRIMARY KEY,
-        message TEXT
+        message TEXT,
+        alarm_type TEXT,
+        score INTEGER,
+        anomaly_time TEXT
         
     )
 ''')
@@ -444,20 +447,26 @@ class AnomalyDetectionModel:
                                   f"application ID combination is {mean_packet_size} bytes. " \
                                   f"That degree of deviation from the mean gets a score of {risk_score:.2f}."
 
-                alarm_messages.append(anomaly_message)
-                anomalies = pd.concat([anomalies, row.to_frame().T], ignore_index=True)
+                alarm = {
+                    'message': anomaly_message,
+                    'alarm_type': 'Overflow Alarm',  # Örnek olarak 'Overflow Alarm' kullanıldı
+                    'score': risk_score,
+                    'anomaly_time': timestamp
+                }
 
+                alarm_messages.append(alarm)
+                anomalies = pd.concat([anomalies, row.to_frame().T], ignore_index=True)
         return anomalies, alarm_messages
 # Modeli oluştur
 anomaly_detection_model = AnomalyDetectionModel()
 
 # Alarm mesajlarını kaydetme fonksiyonu
 def save_alarms_to_db(alarm_messages):
-    for message in alarm_messages:
+    for alarm in alarm_messages:
         cursor_alarm.execute('''
-            INSERT INTO alarms (message)
-            VALUES (?)
-        ''', (message,))
+            INSERT INTO alarms (message, alarm_type, score, anomaly_time)
+            VALUES (?, ?, ?, ?)
+        ''', (alarm['message'], alarm['alarm_type'], alarm['score'], alarm['anomaly_time']))
     conn_alarm.commit()
 packet_data = fetch_packet_data()
 
@@ -491,16 +500,13 @@ def process_packet_data():
 @app.route('/anomalies')
 def anomalies():
     # Veritabanından alarm mesajlarını al
-    conn_alarm = sqlite3.connect('alarm_data.db', check_same_thread=False)
-    cursor_alarm = conn_alarm.cursor()
     cursor_alarm.execute('''
-        SELECT message FROM alarms
+        SELECT message, alarm_type, score, anomaly_time FROM alarms
     ''')
-    alarm_messages = [row[0] for row in cursor_alarm.fetchall()]
+    alarm_messages = [{'message': row[0], 'alarm_type': row[1], 'score': row[2], 'anomaly_time': row[3]} for row in cursor_alarm.fetchall()]
 
     # anomalies.html şablon dosyasını kullanarak alarm mesajlarını göster
     return render_template('anomalies.html', anomaly_messages=alarm_messages)
-
 @app.route('/')
 def index():
      # Birinci grafik dosyasını oluştur ve adını al

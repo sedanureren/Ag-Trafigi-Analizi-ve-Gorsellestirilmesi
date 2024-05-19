@@ -1,25 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Ana Sayfa</title>
+</head>
+<body>
+    <h1>Ana Sayfa</h1>
+
+    <!DOCTYPE html>
+<html>
+<head>
     <title>Packet Count</title>
 </head>
 <body>
-
-    <h1>Packet Count</h1>
-    <p>Total number of packets: {{ packet_count }}</p>
 
     <!-- Birinci grafik görüntüleme -->
     <div>
         <h2>Packet Count Over Time (Last 10 Seconds)</h2>
         <img src="{{ url_for('static', filename=packet_count_graph_filename) }}" alt="Packet Count Graph">
     </div>
-
     <!-- İkinci grafik görüntüleme -->
     <div>
         <h2>Packet Count by Protocol (Last 30 Seconds)</h2>
         <img src="{{ url_for('static', filename=protocol_distribution_graph_filename) }}" alt="Protocol Distribution Graph">
     </div>
-
     <!-- Üçüncü grafik görüntüleme -->
     <div>
         <h2>Ethernet Frame Count Over Time (Last 10 Seconds)</h2>
@@ -30,39 +33,12 @@
         <h2>Son 10 IP adresi</h2>
         <img src="{{ url_for('static', filename=mac_address_packet_count_graph_filename) }}" alt="mac_address_packet_count_graph_filename">
     </div>
-     <!-- Beşinci grafik görüntüleme -->
-    <div>
-        <h2>Concurrent Streams Over Time</h2>
-        <img src="{{ url_for('static', filename=concurrent_streams_graph_filename) }}" alt="Concurrent Streams Graph">
-    </div>
- <!-- Beşinci grafik görüntüleme -->
-    <!-- <div>
-        <h2>syn_flow_graph</h2>
-        <img src="{{ url_for('static', filename=syn_flow_graph_filename) }}" alt="SYN Flow Graph">
-    </div>
-     -->
 
-    <div>
-        <h2>SYN Packet Counts</h2>
-        <table border="1">
-            <tr>
-                <th>Source IP</th>
-                <th>Destination IP</th>
-                <th>Source Port</th>
-                <th>Destination Port</th>
-                <th>Packet Count</th>
-            </tr>
-            {% for flow, count in syn_flows.items() %}
-            <tr>
-                <td>{{ flow[0] }}</td>
-                <td>{{ flow[1] }}</td>
-                <td>{{ flow[2] }}</td>
-                <td>{{ flow[3] }}</td>
-                <td>{{ count }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
+</body>
+</html>
 
+
+    <!-- Anomaliler sayfasına gitmek için bir bağlantı -->
+    <a href="/anomalies">Anomaliler</a>
 </body>
 </html>

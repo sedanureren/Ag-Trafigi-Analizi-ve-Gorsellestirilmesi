@@ -501,9 +501,9 @@ def process_packet_data():
 def anomalies():
     # Veritabanından alarm mesajlarını al
     cursor_alarm.execute('''
-        SELECT message, alarm_type, score, anomaly_time FROM alarms
+        SELECT id, message, alarm_type, score, anomaly_time FROM alarms
     ''')
-    alarm_messages = [{'message': row[0], 'alarm_type': row[1], 'score': row[2], 'anomaly_time': row[3]} for row in cursor_alarm.fetchall()]
+    alarm_messages = [{'id': row[0], 'message': row[1], 'alarm_type': row[2], 'score': row[3], 'anomaly_time': row[4]} for row in cursor_alarm.fetchall()]
 
     # anomalies.html şablon dosyasını kullanarak alarm mesajlarını göster
     return render_template('anomalies.html', anomaly_messages=alarm_messages)

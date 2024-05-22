@@ -367,13 +367,14 @@ def fetch_packet_data():
 
 def perform_statistical_analysis(packet_data):
     try:
-        if packet_data is not None:
-            # İstatistiksel analizi gerçekleştirin, örneğin paket boyutlarına göre anomalileri tespit edin
+        if packet_data is not None and not packet_data.empty:
+            # Remove rows with all NA values
+            packet_data.dropna(how='all', inplace=True)
+            # Perform statistical analysis
             anomalies, alarm_messages = anomaly_detection_model.statistical_analysis(packet_data)
             return anomalies, alarm_messages
         else:
-            # Paket verisi alınamadı, boş döndür
-            print("Packet data is None. Statistical analysis cannot be performed.")
+            print("Packet data is empty or None. Statistical analysis cannot be performed.")
             return None, []
     except Exception as e:
         print("Error performing statistical analysis:", e)
@@ -395,28 +396,25 @@ def save_data_to_database(anomalies, alarm_messages):
     except Exception as e:
         print("Error saving data to database:", e)
 
+# Modeli güncelle
 class AnomalyDetectionModel:
     def __init__(self):
         self.baseline = None
-        self.establish_baseline()  # establish_baseline metodunu çağırın
+        self.establish_baseline()
 
-    def establish_baseline(self):  # Argüman beklemeyecek şekilde tanımlanmış
-        # Baseline değerlerini kur
+    def establish_baseline(self):
         self.baseline = {
-            'mean_packet_size': 1500,  # Sabit ortalama
-            'std_packet_size': 100      # Sabit standart sapma
+            'mean_packet_size': 1500,
+            'std_packet_size': 100
         }
 
     def calculate_risk_score(self, packet_size):
-        # Eşik değeri aşan paketler için risk skoru belirleme fonksiyonu
-        threshold = 1500  # Örnek eşik değeri
+        threshold = 1500
         if packet_size > threshold:
-            # Eşik değeri aşan paketler için bir risk skalası kullanarak dinamik olarak bir risk skoru belirle
-            scaled_score = 1 + (packet_size - threshold) / 100  # Örnek bir skalaya göre risk skoru hesaplama
-            return min(10, int(scaled_score))  # Risk skorunu en fazla 10 olarak sınırlandır
+            scaled_score = 1 + (packet_size - threshold) / 100
+            return min(10, int(scaled_score))
         else:
-            # Eşik değeri aşmayan paketler için sabit bir risk skoru kullan
-            return 1  # Örnek olarak en düşük risk skoru olan 1'i kullan
+            return 1
 
     def statistical_analysis(self, data):
         anomalies = pd.DataFrame(columns=data.columns)
@@ -424,23 +422,16 @@ class AnomalyDetectionModel:
 
         for index, row in data.iterrows():
             packet_size = row['packet_size']
-
-            # Sabit ortalama ve standart sapma değerlerini al
             mean_packet_size = self.baseline['mean_packet_size']
             std_packet_size = self.baseline['std_packet_size']
-
-            # Z skoru hesapla
             z_score = (packet_size - mean_packet_size) / std_packet_size
-
-            # Risk derecesini hesapla
             risk_score = self.calculate_risk_score(packet_size)
 
-            # Eğer paket boyutu ortalamanın üstündeyse alarm üret
             if packet_size > mean_packet_size:
                 initiator_ip = row['source_ip']
                 application_id = row['protocol']
                 transferred_bytes = packet_size
-                timestamp = pd.to_datetime(row['timestamp']).strftime('%d %b %Y, %H:%M')  # Format timestamp
+                timestamp = pd.to_datetime(row['timestamp']).strftime('%d %b %Y, %H:%M')
                 anomaly_message = f"Initiator IP {initiator_ip}, while using {application_id}, " \
                                   f"transferred {transferred_bytes} bytes at around {timestamp}. " \
                                   f"The mean for this same capture interface + time + IP initiator + " \
@@ -449,24 +440,100 @@ class AnomalyDetectionModel:
 
                 alarm = {
                     'message': anomaly_message,
-                    'alarm_type': 'Overflow Alarm',  # Örnek olarak 'Overflow Alarm' kullanıldı
+                    'alarm_type': 'Overflow Alarm',
                     'score': risk_score,
                     'anomaly_time': timestamp
                 }
 
                 alarm_messages.append(alarm)
                 anomalies = pd.concat([anomalies, row.to_frame().T], ignore_index=True)
+
+        access_anomalies, access_alarms = self.detect_access_anomalies(data)
+        traffic_anomalies, traffic_alarms = self.detect_high_traffic(data)
+        #protocol_anomalies, protocol_alarms = self.detect_protocol_violations(data)
+
+        anomalies = pd.concat([anomalies, access_anomalies, traffic_anomalies], ignore_index=True)
+        alarm_messages.extend(access_alarms)
+        alarm_messages.extend(traffic_alarms)
+        #alarm_messages.extend(protocol_alarms)
+
         return anomalies, alarm_messages
+
+    def detect_access_anomalies(self, data):
+        anomalies = pd.DataFrame(columns=data.columns)
+        alarm_messages = []
+
+        normal_hours_start = 9
+        normal_hours_end = 18
+
+        for index, row in data.iterrows():
+            timestamp = pd.to_datetime(row['timestamp'])
+            hour = timestamp.hour
+
+            if hour < normal_hours_start or hour > normal_hours_end:
+                alarm = {
+                    'message': f"IP {row['source_ip']} accessed outside normal working hours at {timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
+                    'alarm_type': 'Anomaly IP',
+                    'score': 5,
+                    'anomaly_time': timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                }
+                alarm_messages.append(alarm)
+                anomalies = pd.concat([anomalies, row.to_frame().T], ignore_index=True)
+
+        return anomalies, alarm_messages
+
+    def detect_high_traffic(self, data):
+        anomalies = pd.DataFrame(columns=data.columns)
+        alarm_messages = []
+
+        high_traffic_threshold = 1000
+        traffic_counts = data['destination_port'].value_counts()
+
+        for port, count in traffic_counts.items():
+            if count > high_traffic_threshold:
+                alarm = {
+                    'message': f"High traffic detected on port {port} with {count} packets",
+                    'alarm_type': 'High Traffic Port',
+                    'score': 7,
+                    'anomaly_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+                alarm_messages.append(alarm)
+                anomalies = pd.concat([anomalies, data[data['destination_port'] == port]], ignore_index=True)
+        return anomalies, alarm_messages
+
+    def detect_protocol_violations(self, data):
+        anomalies = pd.DataFrame(columns=data.columns)
+        alarm_messages = []
+
+        expected_protocols = {'80': 'HTTP', '443': 'HTTPS'}
+
+        for index, row in data.iterrows():
+            dst_port = str(row['destination_port'])
+            protocol = row['protocol']
+
+            if dst_port in expected_protocols and protocol != expected_protocols[dst_port]:
+                alarm = {
+                    'message': f"Unexpected protocol {protocol} detected on port {dst_port} at {row['timestamp']}",
+                    'alarm_type': 'Unexpected Protocol',
+                    'score': 6,
+                    'anomaly_time': row['timestamp']
+                }
+                alarm_messages.append(alarm)
+                anomalies = pd.concat([anomalies, row.to_frame().T], ignore_index=True)
+
+        return anomalies, alarm_messages
+
 # Modeli oluştur
 anomaly_detection_model = AnomalyDetectionModel()
 
 # Alarm mesajlarını kaydetme fonksiyonu
 def save_alarms_to_db(alarm_messages):
     for alarm in alarm_messages:
+        anomaly_time = pd.to_datetime(alarm['anomaly_time']) if isinstance(alarm['anomaly_time'], str) else alarm['anomaly_time']
         cursor_alarm.execute('''
             INSERT INTO alarms (message, alarm_type, score, anomaly_time)
             VALUES (?, ?, ?, ?)
-        ''', (alarm['message'], alarm['alarm_type'], alarm['score'], alarm['anomaly_time']))
+        ''', (alarm['message'], alarm['alarm_type'], alarm['score'], anomaly_time.strftime('%Y-%m-%d %H:%M:%S')))
     conn_alarm.commit()
 packet_data = fetch_packet_data()
 
@@ -499,13 +566,15 @@ def process_packet_data():
         time.sleep(10)  # 5 dakika bekleyin (300 saniye)
 @app.route('/anomalies')
 def anomalies():
-    # Veritabanından alarm mesajlarını al
-    cursor_alarm.execute('''
-        SELECT id, message, alarm_type, score, anomaly_time FROM alarms
-    ''')
-    alarm_messages = [{'id': row[0], 'message': row[1], 'alarm_type': row[2], 'score': row[3], 'anomaly_time': row[4]} for row in cursor_alarm.fetchall()]
+    # Fetch alarm messages from the database
+    cursor_alarm.execute('SELECT id, message, alarm_type, score, anomaly_time FROM alarms')
+    rows = cursor_alarm.fetchall()
+    # Construct a list of dictionaries from the fetched rows
+    alarm_messages = [{'id': row[0], 'message': row[1], 'alarm_type': row[2], 'score': row[3], 'anomaly_time': row[4]} for row in rows]
+    # Close the cursor
+    cursor_alarm.close()
 
-    # anomalies.html şablon dosyasını kullanarak alarm mesajlarını göster
+    # Render the anomalies.html template with the constructed list of alarm messages
     return render_template('anomalies.html', anomaly_messages=alarm_messages)
 @app.route('/')
 def index():
@@ -517,7 +586,8 @@ def index():
     ethernet_frame_count_graph_filename = generate_ethernet_frame_count_graph()
     # Dördüncü grafik dosyasını oluştur ve adını al
     mac_address_packet_count_graph_filename = generate_mac_address_packet_count_graph()
-
+    cursor_alarm.execute('SELECT id, message, alarm_type, score, anomaly_time FROM alarms')
+    alarm_messages = [{'id': row[0], 'message': row[1], 'alarm_type': row[2], 'score': row[3], 'anomaly_time': row[4]} for row in cursor_alarm.fetchall()]
     # Şablon dosyasına grafik dosyalarının adını ileterek HTML sayfasını oluştur
     return render_template('index.html', anomaly_messages=alarm_messages,
                            packet_count_graph_filename=packet_count_graph_filename,

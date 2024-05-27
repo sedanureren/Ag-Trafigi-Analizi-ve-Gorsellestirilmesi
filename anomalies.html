@@ -8,96 +8,142 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <!-- Bootstrap JS -->
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .scrollable-table {
             max-height: 400px;
             overflow-y: auto;
         }
+
+        .custom-chart {
+            margin-left: -20px;
+        }
+
+        .last-minute-alarms {
+            margin-top: 20px;
+            margin-left: -20px;
+        }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">Anomaly Detection System</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav ml-auto">
-                <li class="nav-item active">
-                    <a class="nav-link" href="/">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/anomalies">Anomaly Messages</a>
-                </li>
-            </ul>
-        </div>
-    </nav>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">Anomaly Detection System</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item active">
+                <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/anomalies">Anomaly Messages</a>
+            </li>
+        </ul>
+    </div>
+</nav>
 
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-12">
-                <h2>Anomaly Detection</h2>
-                <!-- Placeholder for statistical graphs -->
-                <div id="statistical-graphs" style="height: 300px; border: 1px solid #ddd; margin-bottom: 20px;">
-                    <p>Statistical Graphs Here</p>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Anomaly Detection</h2>
+                <!-- Statistical Graph -->
+                <div class="row">
+                    <div class="col-md-4">
+                        <h3>Statistical Graph</h3>
+                        <img src="{{ url_for('static', filename=minute_wise_alarm_graph_file) }}" alt="Statistical Graph" width="400" height="300">
+                    </div>
+                    <!-- Alarm Type Distribution -->
+                    <div class="col-md-4">
+                        <h3>Alarm Type Distribution</h3>
+                        <img src="{{ url_for('static', filename=alarm_type_distribution_chart_file) }}" alt="Alarm Type Distribution" id="alarmTypeDistributionImg" class="custom-chart" width="400" height="300">
+                    </div>
+                    <!-- Last Minute Alarms -->
+                    <div class="col-md-4 last-minute-alarms text-right">
+                        <h3 style="border-bottom: 2px solid #000; padding-bottom: 5px;">Last Minute Alarms</h3>
+                        <div id="lastMinuteAlarms" class="border p-3">
+                            <h4 id="lastMinuteAlarmCount" style="font-size: 24px;">{{ last_minute_alarm_count }}</h4>
+                            <p style="font-size: 18px;">Adet Anomali Tespit Edildi</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="scrollable-table">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th scope="col">Type</th>
-                                <th scope="col">Time of Detection</th>
-                                <th scope="col">Score</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% set alarm_count = {} %}
-                            {% for alarm in anomaly_messages %}
-                                {% if alarm.score >= 7 %}
-                                    {% set alarm_type = alarm.alarm_type %}
-                                    {% if alarm_type not in alarm_count %}
-                                        {% set alarm_count = alarm_count.update({alarm_type: 0}) or alarm_count %}
-                                    {% endif %}
-                                    {% if alarm_count[alarm_type] < 15 %}
-                                        <tr>
-                                            <td>{{ alarm.alarm_type }}</td>
-                                            <td>{{ alarm.anomaly_time }}</td>
-                                            <td>{{ alarm.score }}</td>
-                                            <td>
-                                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal{{ loop.index }}">
-                                                    View Details
+             </div>
+        </div>
+
+    </div>
+    <!-- Anomaly Table -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h2>Anomaly List</h2>
+            <div class="scrollable-table">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">Type</th>
+                            <th scope="col">Time of Detection</th>
+                            <th scope="col">Score</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for alarm in alarm_messages %}
+                        <tr>
+                            <td>{{ alarm.alarm_type }}</td>
+                            <td>{{ alarm.anomaly_time }}</td>
+                            <td>{{ alarm.score }}</td>
+                            <td>
+                                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal{{ loop.index }}">
+                                    View Details
+                                </button>
+                                <div class="modal fade" id="myModal{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel{{ loop.index }}" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="exampleModalLabel{{ loop.index }}">Anomaly Details</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
                                                 </button>
-                                                <div class="modal fade" id="myModal{{ loop.index }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel{{ loop.index }}" aria-hidden="true">
-                                                    <div class="modal-dialog" role="document">
-                                                        <div class="modal-content">
-                                                            <div class="modal-header">
-                                                                <h5 class="modal-title" id="exampleModalLabel{{ loop.index }}">Anomaly Details</h5>
-                                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                                    <span aria-hidden="true">&times;</span>
-                                                                </button>
-                                                            </div>
-                                                            <div class="modal-body">
-                                                                <p>{{ alarm.message }}</p>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% set alarm_count = alarm_count.update({alarm_type: alarm_count[alarm_type] + 1}) or alarm_count %}
-                                    {% endif %}
-                                {% endif %}
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>{{ alarm.message }}</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+</div>
+
+<script>
+    // Fetch alarm data and initialize charts
+    $(document).ready(function() {
+        fetch('/alarm_data')
+            .then(response => response.json())
+            .then(data => {
+                updateAlarmTypeDistribution(data.typeDistribution);
+                updateLastMinuteAlarmCount(data.lastMinuteAlarms);
+            });
+
+        function updateAlarmTypeDistribution(data) {
+            var ctx = document.getElementById('alarmTypeDistributionImg');
+            ctx.src = data;
+        }
+
+        function updateLastMinuteAlarmCount(count) {
+            document.getElementById('lastMinuteAlarmCount').innerText = count;
+        }
+    });
+</script>
 </body>
 </html>

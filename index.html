@@ -46,17 +46,17 @@
 <body>
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">Anomaly Detection System</a>
+        <a class="navbar-brand" href="#">Paket Analizi Sistemi</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ml-auto">
                 <li class="nav-item active">
-                    <a class="nav-link" href="/">Home</a>
+                    <a class="nav-link" href="/">Ana Sayfa</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/anomalies">Anomaly Messages</a>
+                    <a class="nav-link" href="/anomalies">Anomali Mesajları</a>
                 </li>
             </ul>
         </div>
@@ -66,12 +66,12 @@
         <!-- Birinci grafik -->
         <div class="row graph-container">
             <div class="col-md-6">
-                <h2>Packet Count Over Time (Last 10 Seconds)</h2>
+                <h2>Paket Sayısı (Son 30 Saniye)</h2>
                 <img src="{{ url_for('static', filename=packet_count_graph_filename) }}" alt="Packet Count Graph">
             </div>
             <!-- İkinci grafik -->
             <div class="col-md-6">
-                <h2>Packet Count by Protocol (Last 30 Seconds)</h2>
+                <h2>Protokole Göre Paket Sayısı(Son 30 Saniye)</h2>
                 <img src="{{ url_for('static', filename=protocol_distribution_graph_filename) }}" alt="Protocol Distribution Graph">
             </div>
 
@@ -81,7 +81,7 @@
 
             <!-- Dördüncü grafik -->
             <div class="col-md-6">
-                <h2>Son 10 IP adresi</h2>
+                <h2>En Çok Kullanılan IP Adresleri</h2>
                 <img src="{{ url_for('static', filename=mac_address_packet_count_graph_filename) }}" alt="mac_address_packet_count_graph_filename">
             </div>
             <!-- Beşinci grafik -->
@@ -93,7 +93,7 @@
         </div>
          <div class="row graph-container">
              <div class="col-md-6">
-                <h2>Ethernet Frame Count Over Time (Last 10 Seconds)</h2>
+                <h2>Zaman İçinde Ethernet Çerçeve Sayısı (Son 10 Saniye)</h2>
                 <img src="{{ url_for('static', filename=ethernet_frame_count_graph_filename) }}" alt="Ethernet Frame Count Graph">
             </div>
              <!-- Altıncı grafik -->
@@ -103,32 +103,33 @@
             </div>
         </div>
         <!-- Son 20 paket listesi -->
+         <!-- Son 20 paket listesi -->
         <div class="graph-container">
-            <h2>Last 20 Packets</h2>
-                <div class="table-container">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>Source IP</th>
-                                <th>Destination IP</th>
-                                <th>Protocol</th>
-                                <th>Packet Size</th>
+            <h2>Son 20 Paket</h2>
+            <div class="table-container">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Zaman Damgası</th>
+                            <th>Kaynak IP</th>
+                            <th>Hedef IP</th>
+                            <th>Protokol</th>
+                            <th>Paket Boyutu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for packet in last_20_packets %}
+                            <tr class="protocol-{{ packet[3] }}">
+                                <td>{{ packet[0] }}</td>
+                                <td>{{ packet[1] }}</td>
+                                <td>{{ packet[2] }}</td>
+                                <td>{{ packet[3] }}</td>
+                                <td>{{ packet[4] }}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {% for packet in last_20_packets %}
-                                <tr class="protocol-{{ packet[3] }}">
-                                    <td>{{ packet[0] }}</td>
-                                    <td>{{ packet[1] }}</td>
-                                    <td>{{ packet[2] }}</td>
-                                    <td>{{ packet[3] }}</td>
-                                    <td>{{ packet[4] }}</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 

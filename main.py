@@ -577,11 +577,11 @@ class AnomalyDetectionModel:
                 application_id = row['protocol']
                 transferred_bytes = packet_size
                 timestamp = pd.to_datetime(row['timestamp']).strftime('%d %b %Y, %H:%M')
-                anomaly_message = f"Initiator IP {initiator_ip}, while using {application_id}, " \
-                                  f"transferred {transferred_bytes} bytes at around {timestamp}. " \
-                                  f"The mean for this same capture interface + time + IP initiator + " \
-                                  f"application ID combination is {mean_packet_size} bytes. " \
-                                  f"That degree of deviation from the mean gets a score of {risk_score:.2f}."
+                anomaly_message = f"Başlatıcı IP {initiator_ip}, {application_id} kullanırken " \
+                                  f"yaklaşık olarak {timestamp} civarında {transferred_bytes} bayt veri aktardı. " \
+                                  f"Bu belirli yakalama arayüzü, zaman, IP başlatıcı ve uygulama kimliği kombinasyonu için " \
+                                  f" ortalama paket boyutu {mean_packet_size} bayttır. " \
+                                  f"Bu ortalama değerden sapma derecesi {risk_score:.2f} puan aldı."
 
                 alarm = {
                     'message': anomaly_message,
@@ -624,7 +624,7 @@ class AnomalyDetectionModel:
                 risk_score = self.calculate_risk_score(packet_size)
 
                 alarm = {
-                    'message': f"IP {row['source_ip']} accessed outside normal working hours or with abnormal packet size ({packet_size} bytes) at {timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
+                    'message': f"{row['source_ip']} IP adresi, normal çalışma saatleri dışında ({timestamp.strftime('%Y-%m-%d %H:%M:%S')})  ({packet_size} bayt) boyutunda paket  tespit edildi.",
                     'alarm_type': 'Anomaly IP',
                     'score': risk_score,
                     'anomaly_time': timestamp.strftime('%Y-%m-%d %H:%M:%S')
@@ -653,10 +653,10 @@ class AnomalyDetectionModel:
             for i in range(len(group) - 1):
                 if (group.iloc[i + 1]['timestamp'] - group.iloc[i]['timestamp']).total_seconds() <= 5:
                     count += 1
-                    if count >= 15:
+                    if count >= 105:
                         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                         alarm_message = {
-                            'message': f"IP {ip} has sent {count + 1} SYN packets within 5 seconds, indicating a possible SYN flood attack.",
+                            'message': f"{ip} IP adresi, 5 saniye içinde {count + 1} adet SYN paketi gönderdi, bu bir SYN flooding saldırına işaret ediyor olabilir.",
                             'alarm_type': 'SYN Flood',
                             'score': 9,
                             'anomaly_time': timestamp
@@ -687,7 +687,7 @@ class AnomalyDetectionModel:
 
 
                     alarm = {
-                        'message': f"High traffic detected on port {port} with {count} packets",
+                        'message': "Port {port}'de yüksek seviyede trafik tespit edildi, {count} paket ile.",
                         'alarm_type': 'High Traffic Port',
                         'score': risk_score,  # Dinamik risk skoru
                         'anomaly_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -710,7 +710,7 @@ class AnomalyDetectionModel:
 
             if protocol == 'HTTP':
                 alarm = {
-                    'message': f"Unsecure protocol {protocol} detected on port {row['destination_port']} at {row['timestamp']}",
+                    'message': f"Güvensiz protokol {protocol}, {row['timestamp']} tarihinde {row['destination_port']} numaralı portta tespit edildi.",
                     'alarm_type': 'Unsecure Protocol',
                     'score': 7,
                     'anomaly_time': row['timestamp']
@@ -764,7 +764,7 @@ def process_packet_data():
             save_alarms_to_db(alarm_messages)
 
         # Belirli bir süre bekle (örneğin, 10 saniye)
-        time.sleep(10)
+        time.sleep(30)
 
 @app.route('/anomalies')
 def anomalies():
@@ -789,27 +789,6 @@ def anomalies():
     last_minute_alarm_count = get_last_minute_alarm_count()
 
     return render_template('anomalies.html', alarm_messages=alarm_messages, minute_wise_alarm_graph_file=minute_wise_alarm_graph_file, alarm_type_distribution_chart_file=alarm_type_distribution_chart_file, last_minute_alarm_count=last_minute_alarm_count)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 @app.route('/')

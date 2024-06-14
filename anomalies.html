@@ -58,14 +58,14 @@
                     <!-- Alarm Type Distribution -->
                     <div class="col-md-4">
                         <h3>Alarm Type Distribution</h3>
-                        <img src="{{ url_for('static', filename=alarm_type_distribution_chart_file) }}" alt="Alarm Type Distribution" id="alarmTypeDistributionImg" class="custom-chart" width="400" height="300">
+                        <img src="{{ url_for('static', filename=alarm_type_distribution_chart_file) }}" alt="Alarm Type Distribution" id="alarmTypeDistributionImg" class="custom-chart" width="350" height="300">
                     </div>
                     <!-- Last Minute Alarms -->
                     <div class="col-md-4 last-minute-alarms text-right">
-                        <h3 style="border-bottom: 2px solid #000; padding-bottom: 5px;">Last Minute Alarms</h3>
+                        <h3 style="border-bottom: 2px solid #000; padding-bottom: 5px;">Son 1 dakika'da </h3>
                         <div id="lastMinuteAlarms" class="border p-3">
                             <h4 id="lastMinuteAlarmCount" style="font-size: 24px;">{{ last_minute_alarm_count }}</h4>
-                            <p style="font-size: 18px;">Adet Anomali Tespit Edildi</p>
+                            <p style="font-size: 18px;">adet anomali tespit edildi.</p>
                         </div>
                     </div>
                 </div>
